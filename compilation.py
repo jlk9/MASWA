@@ -25,14 +25,14 @@ def compile_mpi():
 
 def compile_cuda():
     cc = 'g++'
-    obj = ['MASWaves_main']
+    obj = ['MASWA_main']
     cflags = '-I./include_cuda'
-    exe = 'cuda_masw'
+    exe = 'maswa_cuda'
     libs = ['-lm', '-lcudart', '-lcublas', '-L/usr/lib/cuda/lib64']
     source = 'src_cuda/'
 
     # First we compile the cuda files:
-    cuda_obj = ['MASWaves_theoretical_dispersion_curve', 'MASWaves_misfit', 'MASWaves_stiffness_matrix', 'MASWaves_test_cases', 'MASWaves_ke', 'MASWaves_inversion', 'MASWaves_setVariables']
+    cuda_obj = ['MASWA_theoretical_dispersion_curve', 'MASWA_misfit', 'MASWA_stiffness_matrix', 'MASWA_test_cases', 'MASWA_ke', 'MASWA_inversion', 'MASWA_setVariables']
     for thing in cuda_obj:
         cuda_command = ['nvcc', '-c', source + thing + '.cu', '-o', source + thing + '_cuda.o', cflags] + libs + ['--prec-div=true']
         print(' '.join(cuda_command))
