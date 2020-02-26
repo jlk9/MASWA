@@ -1,7 +1,11 @@
 #include "MASW.h"
 
+// Written by Joseph Kump (josek97@vt.edu). Last modified 01/27/2020
+
 /* The main function called by the MASWA_mpi executable. Can be used to run MASWA_inversion,
     or one of the test functions available. 
+
+    Currently no input arguments are used in this function.
 
 */
 int main(int argc, char**argv){

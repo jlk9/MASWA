@@ -1,11 +1,18 @@
 #include "MASW.h"
 
-/*The function MASWaves_Ke_halfspace computes the element stiffness matrix
- for the half-space (layer n+1) of the stratified earth model that is
- used in the inversion analysis. This halfspace is a 2x2 matrix stored
- as a 1D array by rows.
-*/
+// Written by Joseph Kump (josek97@vt.edu). Last modified 09/23/2019
 
+/* Computes the element stiffness matrix for the half-space (layer n+1) of the stratified earth model that is
+ used in the inversion analysis. This halfspace is a 2x2 matrix stored as a 1D array by rows.
+ 
+ Inputs:
+ r_alpha is an entry of the alpha array in a curve struct.
+ r_beta is an entry of the beta array in a curve struct.
+ r_rho is an entry of the rho array in a curve struct.
+ r_c_test is a test velocity from a curve struct.
+ r_k is an inverted wavelength from a curve struct.
+ 
+*/
 compfloat *MASWA_Ke_halfspace(dfloat r_alpha, dfloat r_beta, dfloat r_rho, dfloat r_c_test, dfloat r_k){
 
     compfloat alpha = r_alpha;
@@ -28,6 +35,7 @@ compfloat *MASWA_Ke_halfspace(dfloat r_alpha, dfloat r_beta, dfloat r_rho, dfloa
         s *= -1.0;
     }
     
+    // Once we get r and s, we can compute the entries of the halfspace:
     compfloat *Ke  = (compfloat*) calloc(4, sizeof(compfloat));
     compfloat temp = k*rho*beta*beta*(1.0-s*s)/(1.0-r*s);
 

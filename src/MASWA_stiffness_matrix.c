@@ -1,24 +1,39 @@
 #include "MASW.h"
 
+// Written by Joseph Kump (josek97@vt.edu). Last modified 12/15/2019.
+
 /*The function MASWaves_stiffness_matrix assembles the system stiffness
   matrix of the stratified earth model that is used in the inversion
   analysis and computes its determinant.
 
   Note alpha, beta, and rho are all length n+1 while h is length n.
+  
+  Inputs:
+  c_test the array of test velocities from a curve object
+  k the wavelength currently being evaluated by MASW, inverted
+  h the array of thicknesses of stiffness layers
+  alpha the array of compressional wave velocities
+  beta the array of shear wave velocities
+  rho the array of layer densities
+  n the number of finite thickness layers in the ground model
+
  */
 dfloat MASWA_stiffness_matrix(dfloat c_test, dfloat k, dfloat *h, dfloat *alpha, dfloat *beta, dfloat *rho, int n){
     
+    // First we allocate the stiffness matrix row by row:
     compfloat **K = (compfloat**) calloc(2*(n+1), sizeof(compfloat*));
     for (int i=0; i<2*(n+1); ++i){
         K[i] = (compfloat*) calloc(2*(n+1), sizeof(compfloat));
     }
 
+    // Then we check that the test velocity is not too close to the model velocities:
     dfloat epsilon = 0.0001;
     while (tooClose(c_test, alpha, beta, n+1, epsilon) == 1){
         c_test *= 1-epsilon;
     }
     
-
+    // Now we add individual Ke layers to the stiffness matrix, going through each finite
+    // thickness layer:
     for (int j=0; j<n; ++j){
 
         compfloat *Ke = MASWA_Ke_layer(h[j], alpha[j], beta[j], rho[j], c_test, k);
@@ -33,6 +48,7 @@ dfloat MASWA_stiffness_matrix(dfloat c_test, dfloat k, dfloat *h, dfloat *alpha,
         free(Ke);
     }
 
+    // Then we add the halfspace representing the last infinite thickness layer:
     compfloat *Ke_halfspace = MASWA_Ke_halfspace(alpha[n], beta[n], rho[n], c_test, k);
     #define Ke_halfspace(r, c) (Ke_halfspace[(r)*2 + (c)])
     for (int r=0; r<2; ++r){
@@ -42,7 +58,7 @@ dfloat MASWA_stiffness_matrix(dfloat c_test, dfloat k, dfloat *h, dfloat *alpha,
         }
     }
 
-    // real part of determinant
+    // Finally compute the real part of the determinant:
     dfloat D = real(hepta_determinant(K, 2*(n+1)));
 
     free(Ke_halfspace);
@@ -56,6 +72,14 @@ dfloat MASWA_stiffness_matrix(dfloat c_test, dfloat k, dfloat *h, dfloat *alpha,
 
 /* Helper, used to check if c_test is too close to any entries in alpha or beta
    and thus requires modification.
+   
+   Inputs:
+   c_test the test velocity
+   alpha the compressional wave velocities
+   beta the shear wave velocities
+   length the length of alpha and beta
+   epsilon the error tolerance required (if c_test is within epsilon of any model velocity
+    then it is too close)
 */
 int tooClose(dfloat c_test, dfloat *alpha, dfloat *beta, int length, dfloat epsilon){
     for (int i=0; i<length; ++i){
@@ -69,6 +93,11 @@ int tooClose(dfloat c_test, dfloat *alpha, dfloat *beta, int length, dfloat epsi
 /* Helper, used to get the determinant via Guassian row reduction.
     This one takes advantage of the stiffness matrix being heptadiagonal,
     which brings it from O(N^3) to O(N).
+    
+    Inputs:
+    matrix the 2D array storing the entries of a stiffness matrix. Assumed to be stored
+        row-first, and to have a banded heptadiagonal structure
+    size the dimension of the matrix's rows and columns
  */
 compfloat hepta_determinant(compfloat **matrix, int size){
 

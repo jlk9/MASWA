@@ -1,5 +1,7 @@
 #include "MASW.h"
 
+// Written by Joseph Kump (josek97@vt.edu). Last modified 01/31/2020.
+
 /*
 Suite of test cases for various functions in this package.
 */

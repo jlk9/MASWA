@@ -1,9 +1,19 @@
 #include "MASW.h"
 
-/* The function MASWaves_Ke_layer computes the element stiffness matrix
- of the j-th layer (j = 1,...,n) of the stratified earth
- model that is used in the inversion analysis. The stiffness matrix is a
- 4x4 stored in a 1D Array. */
+// Written by Joseph Kump (josek97@vt.edu). Last modified 11/22/2019
+
+/* Computes the element stiffness matrix of the j-th layer (j = 1,...,n) of the stratified earth
+ model that is used in the inversion analysis. The stiffness matrix is a 4x4 stored in a 1D Array.
+ 
+Inputs:
+ r_h is an entry from the h array in a curve struct.
+ r_alpha is an entry of the alpha array in a curve struct.
+ r_beta is an entry of the beta array in a curve struct.
+ r_rho is an entry of the rho array in a curve struct.
+ r_c_test is a test velocity from a curve struct.
+ r_k is an inverted wavelength from a curve struct.
+ 
+ */
 
 compfloat *MASWA_Ke_layer(dfloat r_h, dfloat r_alpha, dfloat r_beta, dfloat r_rho, dfloat r_c_test, dfloat r_k){
 
@@ -31,6 +41,7 @@ compfloat *MASWA_Ke_layer(dfloat r_h, dfloat r_alpha, dfloat r_beta, dfloat r_rh
         s *= -1.0;
     }
 
+    // Compute terms that will help us fill the entries of the Ke layer:
     compfloat Cr = cosh(k*r*h);
     compfloat Sr = sinh(k*r*h);
     compfloat Cs = cosh(k*s*h);
@@ -38,10 +49,11 @@ compfloat *MASWA_Ke_layer(dfloat r_h, dfloat r_alpha, dfloat r_beta, dfloat r_rh
 
     compfloat D = 2.0*(1.0-Cr*Cs) + (1.0/(r*s) + r*s)*Sr*Ss;
 
+    // Now we allocate the data for the Ke layer:
     compfloat *Ke = (compfloat*) calloc(16, sizeof(compfloat));
     compfloat krcd = (k*rho*c_test*c_test)/D;
 
-    // Filling out the entries for the stiffness matrix. Rows have been broken up for ease of reading:
+    // Filling out the entries for the layer. Rows have been broken up for ease of reading:
     Ke[0]   =   krcd * (Cr*Ss/s - r*Sr*Cs);
     Ke[1]   =   krcd * (Cr*Cs - r*s*Sr*Ss - 1.0) - k*rho*beta*beta*(1.0+s*s);
     Ke[2]   =   krcd * (r*Sr - Ss/s);
