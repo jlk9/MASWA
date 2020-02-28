@@ -223,10 +223,7 @@ int testDeterminantMatrixSetup(){
     kernel_assign_matrices_to_data<<<1,1>>>(d_matrices, d_data, curve_length, velocities_length, n);
     kernel_matrix_fill_in_serial<<<1, 50>>>(velocities_length, curve_length, n, d_matrices);
 
-    cublasHandle_t handle;
-    cublasCreate_v2(&handle);
-    cublasZgetrfBatched(handle, size, d_matrices, size, d_pivotArray, d_infoArray, curve_length*velocities_length);
-
+    
     //MASWaves_cuda_stiffness_matrix<<<numBlocks, blockSize>>>(velocities_length, curve_length, d_matrices);
 
     //cudaMemcpy(matrices, d_matrices, curve_length*velocities_length*sizeof(cuDoubleComplex*), cudaMemcpyDeviceToHost);

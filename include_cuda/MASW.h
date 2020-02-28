@@ -5,9 +5,15 @@
 #include <complex>
 #include <time.h>
 
-#include "mpi.h"
 
-/* Written by Joseph Kump as a C implementation of MASWaves with MPI parallelization. */
+/* Written by Joseph Kump as a C implementation of MASWaves with MPI parallelization.
+
+    WARNING: This version of the header file is meant to work with MASW.cuh. Ultimately
+    the MPI and CUDA implementations of MASWA will be integrated so that both forms of
+    parallelization can be used together. For now, this header file has "mpi.h" removed
+    so MPI is not used with the CUDA version. Because of that, this header file is
+    currently not identiacal to the one in the include directory.
+*/
 
 /* We're defaulting to using doubles for real and complex numbers, but
  this allows us to switch to floats or long doubles more easily:
@@ -78,6 +84,7 @@ int main(int argc, char **argv);
 /* Computes the relative error between an experimentally derived dispersion curve and
    a theoretical dispersion curve. */
 dfloat MASWA_misfit(curve_t *curve);
+
 /* Computes the error values for the entries of the dispersion curve on this rank.
     This is then added to the other ranks in the parent function above. */
 dfloat compute_misfit(int curve_length, dfloat *c_t, dfloat *c_curve0);
@@ -88,6 +95,7 @@ dfloat compute_misfit(int curve_length, dfloat *c_t, dfloat *c_curve0);
     derived velocities. Just assigning all the struct's entries. */
 int MASWA_setVariables(curve_t *curve, dfloat *c_test, dfloat *h, dfloat *alpha, dfloat *beta, dfloat *rho, int n,
                        int c_length, int l_length, dfloat *c_curve0, dfloat *lambda_curve0);
+
 /* Check that all data for the inversion are "valid": velocities should be below 5000 m/s,
 and layer thicknesses, densities, and wavelengths should not be negative. Variables
 outside these ranges are not useful for MASW. */
@@ -99,10 +107,12 @@ int validNumberCheck(curve_t *curve);
   matrix of the stratified earth model that is used in the inversion
   analysis and computes its determinant. */
 dfloat MASWA_stiffness_matrix(dfloat c_test, dfloat k, dfloat *h, dfloat *alpha, dfloat *beta, dfloat *rho, int n);
+
 /* Helper, used to get the determinant via Guassian row reduction.
     This one takes advantage of the stiffness matrix being heptadiagonal,
     which brings it from O(N^3) to O(N). */
 compfloat hepta_determinant(compfloat **matrix, int size);
+
 /* Helper, used to check if c_test is too close to any entries in alpha or beta
    and thus requires modification. */
 int tooClose(dfloat c_test, dfloat *alpha, dfloat *beta, int length, dfloat epsilon);
@@ -112,18 +122,23 @@ int tooClose(dfloat c_test, dfloat *alpha, dfloat *beta, int length, dfloat epsi
 /* Tests correctness of Ke_layer and Ke_halfspace. Not intended to evaluate
     performance or use with multiple processes. */
 int testKeLayer();
+
 /* Tests correctness of the stiffness matrix implementation. Not meant to evaluate
     performance or how function works with multiple processes. */
 int testStiffnessMatrix();
+
 /* Tests correctness of inversion on a realistic dataset with decreasing wavelengths
     and velocities on the dispersion curve. */
 int testProcess();
+
 /* Runs testProcess 11 times (accounting for potential compilation time in first run),
     and gathers the run times to gauge performance. */
 int testProcess_full();
+
 /* Tests correctness of inversion on a uniform dataset, to gauge strong and weak scaling
     capabilities of the algorithm with the load imbalancing of variable data. */
 int testScaling(int curve_size, dfloat wavelength);
+
 /*Runs test_scaling multiple times over increasing dispersion curves, used to assess weak scaling.
     Collects and prints runtimes to gauge performance. */
 int testScaling_full();

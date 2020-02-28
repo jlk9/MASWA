@@ -1,28 +1,21 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
-#include <complex>
-#include <time.h>
 
 #include <cuda_runtime.h>
 #include "cuComplex.h"
-#include "cusparse.h"
-#include "cublas.h"
-#include "math.h"
 
 #include "MASW.h"
 
-/* Written by Joseph Kump as a C implementation of MASWaves. Will be adapted into
- MPI and Cuda */
+/* Written by Joseph Kump (josek97@vt.edu) as a CUDA implementation of MASW, modelled after MASWaves.
 
-/* We're defaulting to using doubles for real and complex numbers, but
- this allows us to switch to floats or long doubles easily:
-*/
-// Always real:
-#define dfloat double
-#define dfloatString "double"
-#define dfloatFormat "%lf"
+    The CUDA implementation uses the curve_t struct like the MPI implementation, and utilizes
+    the same libraries as that implementation. Eventually the CUDA and MPI algorithms will
+    be integrated with each other, hence the reference to MASW.h in this header file (with mpi.h
+    removed for now).
+
+    Functions with "MASWA" were (at least initially) modelled after functions in MASWaves, and
+    share the same name. Functions with "kernel" in their name are CUDA kernels. 
+ */
+
+/* Directory of CUDA-related functions: */
 
 /* MASWA_inversion.cu */
 
@@ -106,7 +99,7 @@ __global__ void kernel_hepta_determinant_CUDA(int curve_length, int velocities_l
 
 /* MASWA_test_cases.cu */
 
-// Functions that are also designed for test cases in the CPU version, like textProcess and testScaling,
+// Functions that are also designed for test cases in the CPU version, like testProcess and testScaling,
 // are listed in MASW.h
 
 /* Tests the misfit functions implemented in CUDA, both single block and multi block,
@@ -118,7 +111,7 @@ int testMisfitCuda();
 int testSignChange();
 
 /* Tests that the determinant matrix is set up properly, and the correct sign changes are found.
-    TODO: redo this for new determinant functions */
+    Need to redo this for new determinant functions */
 int testFullSignChange();
 
 /* Tests the stiffness matrices are set up properly. */
