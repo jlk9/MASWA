@@ -1,21 +1,23 @@
 #include "MASW.cuh"
 
-/* The function MASWaves_Ke_layer computes the element stiffness matrix
- of the j-th layer (j = 1,...,n) of the stratified earth
- model that is used in the inversion analysis. The stiffness matrix as a
- 4x4 stored in a 1D Array. */
-
-#define add(x,y) (cuCadd(x,y))
-#define subtract(x,y) (cuCsub(x,y))
-#define multiply(x,y) (cuCmul(x,y))
-#define divide(x,y) (cuCdiv(x,y))
+// Written by Joseph Kump (josek97@vt.edu). Last modified 12/20/2019
 
 #define matrices(i,j,k) (matrices[i][j*size + k])
 
-/*
+/* Generates the stiffness matrices and fills in their entries, then uses Gaussian
+    elimination to make finding their determinants easy. Mostly just allocates memory on
+    the GPU, then gets GPU kernels to do the heavy lifting.
+    
+    Inputs:
+    curve       the dispersion curve struct
+    d_matrices  the stiffness matrices allocated on the GPU as a 2D array (each sub-array
+                    corresponding to a matrix). These were already allocated.
 */
 void MASWA_stiffness_matrix_CUDA(curve_t *curve, cuDoubleComplex **d_matrices){
 
+    // The matrix axes are based on the number of layers. Then the model parameters, test
+    // velocities, and dispersion curve wavelengths are allocated and transferred from
+    // the CPU:
     int size = 2*(curve->n+1);
     dfloat *d_c_test, *d_lambda, *d_h, *d_alpha, *d_beta, *d_rho;
 
@@ -34,16 +36,19 @@ void MASWA_stiffness_matrix_CUDA(curve_t *curve, cuDoubleComplex **d_matrices){
     cudaMemcpy(d_rho, curve->rho, (curve->n+1)*sizeof(dfloat), cudaMemcpyHostToDevice);
 
     // If the shared memory requirements for kernel_generate_stiffness_matrices are too large, then this can be reduced to 128:
-    int blockSize = 256;
-    int blocks = (curve->curve_length*curve->velocities_length / blockSize)+1;
+    int blockSize   = 256;
+    int blocks      = (curve->curve_length*curve->velocities_length / blockSize)+1;
+    
+    // Check none of the test velocities are too close to the model velocities:
     kernel_too_close<<<1,blockSize>>>(curve->velocities_length, curve->n+1, d_c_test, d_alpha, d_beta, 0.0001);
 
-    // Form the stiffness matrices here:
+    // Fill in the stiffness matrices here:
     kernel_generate_stiffness_matrices<<<blocks, blockSize, 6*blockSize*sizeof(cuDoubleComplex)>>>(d_c_test, d_lambda, d_h, d_alpha, d_beta, d_rho, curve->n, curve->velocities_length, curve->curve_length, d_matrices);
     
     // Gaussian Elimination here:
     kernel_hepta_determinant_CUDA<<<blocks, blockSize, 4*blockSize*sizeof(cuDoubleComplex)>>>(curve->curve_length, curve->velocities_length, size, d_matrices);
 
+    // Free all of the model parameters, since they are no longer necessary:
     cudaFree(d_c_test);
     cudaFree(d_lambda);
     cudaFree(d_h);
@@ -53,7 +58,14 @@ void MASWA_stiffness_matrix_CUDA(curve_t *curve, cuDoubleComplex **d_matrices){
 
 }
 
-/* Fills in a simple identity matrix for some test cases. Not used as part of MASW.
+/* Fills in a simple identity matrix for some test cases. Not used as part of MASW (though
+    the parameters are modelled after it).
+
+    Inputs:
+    velocities_length       determines the number of matrices
+    curve_length            also determines the number of matrices
+    n                       determines the size of the matrices
+    matrices                the array storing the matrix entries
 */
 __global__ void kernel_matrix_fill_in_serial(int velocities_length, int curve_length, int n, cuDoubleComplex **matrices){
 
@@ -70,10 +82,13 @@ __global__ void kernel_matrix_fill_in_serial(int velocities_length, int curve_le
 /* Assigns matrix pointers to the contiguous chunk of memory where they are stored. This is necessary for the implementation
     utilizing cuBLAS (there may be a method that does not require a kernel, but other things I tried generated a seg fault).
     Since cuBLAS is no longer used, the code may be rewritten to omit this. (Matrices can just be stored as a 1D array without
-    pointers)
+    pointers, as opposed to a 2D array).
 */
 __global__ void kernel_assign_matrices_to_data(cuDoubleComplex **matrices, cuDoubleComplex *data, int curve_length, int velocities_length, int n){
 
+    // Currently this kernel is serial, but it's effect on the runtime is negligible.
+    // Could be parallelized, or the code could be written so the GPU matrices are just all
+    // on a big 1D array:
     for (int i=0; i<curve_length*velocities_length; ++i){
 
         matrices[i] = (cuDoubleComplex*) ((char*) data+i*((size_t)(4*n*n + 8*n + 4))*sizeof(cuDoubleComplex));
@@ -83,14 +98,23 @@ __global__ void kernel_assign_matrices_to_data(cuDoubleComplex **matrices, cuDou
 /* Performs Gaussian elimination on the stiffness matrices by taking advantage of their
     banded structure, unlike in the cuBLAS function. This version puts the current row
     used for elimination into shared memory, improving the speed of accessing it.
+    
+    Inputs:
+        curve_length            the length of the dispersion curve
+        velocities_length       the number of test velocities
+        size                    the length of the axis for each stiffness matrix
+        matrices                the 2D array holding the matrices' entries
 */
 __global__ void kernel_hepta_determinant_CUDA(int curve_length, int velocities_length, int size, cuDoubleComplex **matrices){
 
-    int blockSize = blockDim.x;
+    // The block and thread indices are used to allocate stiffness matrices to each thread:
+    int blockSize   = blockDim.x;
     int threadIndex = threadIdx.x;
-    int index = blockSize * blockIdx.x + threadIndex;
-    int stride = blockSize * gridDim.x;
+    int index       = blockSize * blockIdx.x + threadIndex;
+    int stride      = blockSize * gridDim.x;
 
+    // Each row used for reduction has only 4 nonzero entries, so we only need 4 entries
+    // in shared memory for each matrix:
     int sharedIndex = 4*threadIndex;
 
     extern __shared__ cuDoubleComplex row[];

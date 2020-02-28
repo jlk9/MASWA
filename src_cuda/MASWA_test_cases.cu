@@ -1,5 +1,7 @@
 #include "MASW.cuh"
 
+// Written by Joseph Kump (josek97@vt.edu). Last modified 01/27/2020
+
 /*
 Suite of test cases for various CUDA functions.
 */

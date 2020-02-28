@@ -1,12 +1,22 @@
 #include "MASW.cuh"
 
-/* Implements the misfit function in CUDA */
+// Written by Joseph Kump (josek97@vt.edu). Last modified 10/30/2019
+
+/* Implements the misfit functions in CUDA */
 
 /* Runs the kernel for computing the misfit. Not used for the inversion (since it's more efficient to
     just compute the misfit with the dispersion curves while they're already on the GPU), but still
-    useful for testing purposes. */
+    useful for testing purposes.
+
+    Inputs:
+    curve_length    the length of both dispersion curves
+    c_t             the theoretically determined dispersion curve from MASW inversion
+    c_curve0        the experimentally derived dispersion curve
+*/
 dfloat run_misfit(int curve_length, dfloat *c_t, dfloat *c_curve0){
 
+    // Allocate memory on the GPU for the dispersion curves and error, and transferring
+    // the dispersion curves:
     dfloat *d_ct, *d_ccurve0, *d_error0, *d_error1, *error;
 
     error = (dfloat*) calloc(1, sizeof(dfloat));
@@ -56,25 +66,35 @@ dfloat run_misfit(int curve_length, dfloat *c_t, dfloat *c_curve0){
 }
 
 /* Global kernel, computes the misfit between the real and theoretical curves. Since the dispersion curve
-    is typically small, it is usually more efficient to compute the misfit within a single block. */
+    is typically small, it is usually more efficient to compute the misfit within a single block.
+
+    Inputs:
+    curve_length    the length of both dispersion curves
+    c_t             the theoretically determined dispersion curve from MASW inversion
+    c_curve0        the experimentally derived dispersion curve
+    error           the total misfit across the dispersion curve
+*/
 __global__ void kernel_misfit_00(const int curve_length, dfloat *c_t, dfloat *c_curve0, dfloat *error){
 
     static const int blockSize = 256; //We're treating blocksize as 256 for now
 
+    // Use the index to determine which entries of the dispersion curve each thread handles,
+    // and the stride if the dispersion curve is longer than the block size:
     int index = threadIdx.x;
     int stride = blockSize;
 
-    //error[0] = 0.0;
-
-    //extern __shared__ dfloat e[];
+    // Stores element errors in shared memory:
     __shared__ dfloat e[blockSize];
 
     e[index] = 0.0;
 
+    // For each entry of the dispersion curve handled by this thread, compute the error and
+    // add it to shared memory:
     for (int i=index; i<curve_length; i+=stride){
         e[index] += sqrt((c_curve0[i]-c_t[i])*(c_curve0[i]-c_t[i])) / c_curve0[i];
     }
 
+    // Here the errors from all the threads are summed up, avoiding race conditions:
     __syncthreads();
     for (int size = stride/2; size>0; size/=2) { //uniform
         if (index<size)
@@ -87,18 +107,26 @@ __global__ void kernel_misfit_00(const int curve_length, dfloat *c_t, dfloat *c_
 
 /* Global kernel, computes the misfit between the real and theoretical curves over multiple blocks. Need
     to use kernel_misfit_block_summation below to sum up these block misfits. Generally the single block
-    implementation is more efficient, so that is used by default. */
+    implementation is more efficient, so that is used by default.
+
+    Inputs:
+    curve_length    the length of both dispersion curves
+    c_t             the theoretically determined dispersion curve from MASW inversion
+    c_curve0        the experimentally derived dispersion curve
+    error           the total misfit across the dispersion curve, split by blocks
+*/
 __global__ void kernel_misfit_01(const int curve_length, dfloat *c_t, dfloat *c_curve0, dfloat *error){
 
+
+    // Generally the same as the 1-block function, except the summation at the end puts all
+    // the errors in one block into one entry. (So error here is an array of numBlock entries,
+    // where it is length 1 in the 1-block function)
     static const int blockSize = 256; //We're treating blocksize as 256 for now
 
     int threadIndex = threadIdx.x;
     int gridIndex = threadIndex + blockIdx.x*blockSize;
     int stride = blockSize * gridDim.x;
 
-    //error[0] = 0.0;
-
-    //extern __shared__ dfloat e[];
     __shared__ dfloat e[blockSize];
 
     e[threadIndex] = 0.0;
@@ -121,13 +149,19 @@ __global__ void kernel_misfit_01(const int curve_length, dfloat *c_t, dfloat *c_
 }
 
 /* Sums all the entries in an array and stores them in the first entry. This is used to add up
-    multiple blocks' worth of memory for the multi-block misfit. */
+    multiple blocks' worth of memory for the multi-block misfit.
+
+    Inputs:
+    array_length    the length of the array to sum up
+    array           the array whose entries will be summed up
+*/
 __global__ void kernel_misfit_block_summation(const int array_length, dfloat *array){
 
     static const int blockSize = 256;
     int index = threadIdx.x;
     int stride = blockSize;
 
+    // Copy the entries into shared memory for faster access:
     __shared__ dfloat e[blockSize];
     e[index] = 0.0;
 
@@ -135,6 +169,7 @@ __global__ void kernel_misfit_block_summation(const int array_length, dfloat *ar
         e[index] += array[i];
     }
 
+    // Now add up the entries in shared memory in a reduce-style operation:
     __syncthreads();
     for (int size = stride/2; size>0; size/=2) { //uniform
         if (index<size)

@@ -1,14 +1,20 @@
 #include "MASW.cuh"
 
+// Written by Joseph Kump (josek97@vt.edu). Last modified 01/27/2020
+
 /* Implements the theoretical dispersion curve in CUDA */
 
-
-/* Helper to run the theoretical dispersion curve kernel */
+/* Carries out the work of MASW inversion. Gets the stiffness matrix determinants, and
+    finds the first sign change in each wavelength's array of determinants.
+ 
+    Inputs:
+    curve       the dispersion curve struct
+ */
 void MASWA_theoretical_dispersion_curve_CUDA(curve_t *curve){
     
-    /*
-    Initialize stiffness matrices on kernel here
-    */
+    
+    // Initialize stiffness matrices on kernel here. They're first allocated as a 1D array,
+    // then pointers are assigned to each matrix:
     cuDoubleComplex **d_matrices;
 
     int size = 2*(curve->n+1);
@@ -17,17 +23,27 @@ void MASWA_theoretical_dispersion_curve_CUDA(curve_t *curve){
     cudaMalloc(&d_data, size*size*curve->curve_length*curve->velocities_length*sizeof(cuDoubleComplex));
     kernel_assign_matrices_to_data<<<1,1>>>(d_matrices, d_data, curve->curve_length, curve->velocities_length, curve->n);
 
+    // Fill in the stiffness matrix entries, then use Gaussian elimination to make finding
+    // determinants easy:
     MASWA_stiffness_matrix_CUDA(curve, d_matrices);
 
+    // The determinants for each wavelength are stored in the same block. Since the number
+    // of test velocities is usually greater than the block size, multiple blocks will
+    // usually be assigned to each wavelength.
     const int blockSize = 256;
     int blocksPerWavelength = (curve->velocities_length / blockSize)+1;
 
+    // Neighbors holds the determinant of the "next block" for the wavelength, to make
+    // sure sign changes between blocks are not ignored. signChange holds the first
+    // determinant sign change for each block.
     int *d_neighbors, *d_signChange;
     cudaMalloc(&d_neighbors, blocksPerWavelength*curve->curve_length*sizeof(int));
     cudaMalloc(&d_signChange, blocksPerWavelength*curve->curve_length*sizeof(int));
 
+    // Breaks up the blocks along two axes, assigning blocks in order to each wavelength:
     dim3 numBlocks(curve->curve_length, blocksPerWavelength);
 
+    // Find the first determinant sign change for each wavelength within its block only:
     kernel_block_sign_change<<<numBlocks, 256, 256>>>(d_neighbors, d_signChange, curve->velocities_length, size, d_matrices);
 
     dfloat *d_c_t, *d_c_test;
@@ -35,10 +51,13 @@ void MASWA_theoretical_dispersion_curve_CUDA(curve_t *curve){
     cudaMalloc(&d_c_test, curve->velocities_length*sizeof(dfloat));
     cudaMemcpy(d_c_test, curve->c_test, curve->velocities_length*sizeof(dfloat), cudaMemcpyHostToDevice);
     
+    // Finds the first sign change for each wavelength across all blocks, then assigns
+    // the corresponding test velocity to that entry of the theoretical dispersion curve:
     kernel_first_sign_change<<<1, 1>>>(d_c_t, d_c_test, d_signChange, blocksPerWavelength, curve->curve_length);
     cudaMemcpy(curve->c_t, d_c_t, curve->curve_length*sizeof(dfloat), cudaMemcpyDeviceToHost);
 
-    // Compute the misfit
+    // Compute the misfit. It's quicker to do it here where the dispersion curves are
+    // allocated to the GPU anyway:
     int misfitBlocks = (curve->curve_length + blockSize - 1) / blockSize;
 
     dfloat *error, *d_error, *d_c_curve0;
@@ -66,15 +85,22 @@ void MASWA_theoretical_dispersion_curve_CUDA(curve_t *curve){
     
 }
 
-/* Identifies the first dispersion curve with a sign change in each block of velocity values */
+/* Identifies the first dispersion curve with a sign change in each block of velocity values.
+
+    Inputs:
+    neighbors           stores the determinant for the first entry of the "next block over"
+                            to make sure sign change between blocks aren't ignored
+    signChange          stores the index of the fist sign change in each block, filled by
+                            this kernel
+    velocities_length   the length of the test velocities array
+    size                the axis size of the stiffness matrices (2*(n+1))
+    matrices            the 2D array that holds the stiffness matrix entries
+*/
 __global__ void kernel_block_sign_change(int *neighbors, int *signChange, int velocities_length, int size, cuDoubleComplex **matrices){
     /*
     IDEA: break up threads/blocks by c_test and lambda_curve0
 
     Each thread fills in one stiffness matrix corresponding to its lambda_curve0 and c_test values (thus we can parallelize ke_layer and ke_halfspace to fill these in)
-
-    Compute determinants of heptadiagonal, symmetric stiffness matrices
-
     */
 
     // Both signChange and neighbors are size curve_length * blocksPerWavelength
@@ -89,7 +115,6 @@ __global__ void kernel_block_sign_change(int *neighbors, int *signChange, int ve
     int blocksPerWavelength = gridDim.y;
 
     // The portion of determinants stored in this block.
-    // Since only the sign changes matter, they are stored as ints.
     __shared__ dfloat e[blockSize];
 
     e[threadIndex] = 0;
@@ -98,6 +123,7 @@ __global__ void kernel_block_sign_change(int *neighbors, int *signChange, int ve
         //This is where we get the determinants from the reduced matrices:
         cuDoubleComplex det = matrices[wavelengthIndex*velocities_length + velocityIndex][0];
         for (int i=1; i<size; ++i){
+            // We only need to multiply the diagonal entries:
             det = cuCmul(matrices[wavelengthIndex*velocities_length + velocityIndex][i*size + i], det);
         }
 
@@ -134,16 +160,29 @@ __global__ void kernel_block_sign_change(int *neighbors, int *signChange, int ve
 }
 
 /* Searches through array to find the first sign change for each wavelength.
-    This iterates over multiple blocks from the previous kernel: 
+    This iterates over multiple blocks from kernel_block_sign_change.
+    Currently a serial kernel, but it has a negligible effect on the runtime. May be
+    parallelized later.
+    
+    Inputs:
+    c_t                     the theoretical dispersion curve
+    c_test                  the test velocity array
+    signChange              the indices of the first sign changes for each block of each
+                                wavelength
+    blocksPerWavelength     the number of blocks assigned to each wavelength
+    curve_length            the length of the dispersion curve
 */
 __global__ void kernel_first_sign_change(dfloat *c_t, dfloat* c_test, int *signChange, int blocksPerWavelength, int curve_length){
 
     #define signChange(r, c) (signChange[(r)*blocksPerWavelength + (c)])
-
+    
+    // For each entry in the dispersion curve-
     for (int i=0; i<curve_length; ++i){
-
+        // -we iterate over all test velocities (in their blocks)-
         for (int j=0; j<blocksPerWavelength; ++j){
             if (signChange(i,j) != -1){
+                // -and stop when we find the first determinant with a sign change from
+                // its predecessor.
                 c_t[i] =  c_test[signChange(i,j)];
                 break;
             }
