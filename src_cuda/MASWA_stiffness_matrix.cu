@@ -121,6 +121,8 @@ __global__ void kernel_hepta_determinant_CUDA(int curve_length, int velocities_l
 
     for (int x=index; x<curve_length*velocities_length; x+=stride){
 
+        dfloat modifier = 1.0;
+
         for (int i=0; i<size; ++i){
 
             int end = i + 4;
@@ -132,7 +134,22 @@ __global__ void kernel_hepta_determinant_CUDA(int curve_length, int velocities_l
                 row[sharedIndex + k - i] = matrices(x,i,k);
             }
 
-            // TODO: row switching
+            // Row switching
+            if (cuCreal(matrices(x,i,i)) == 0.0 && cuCimag(matrices(x,i,i)) == 0.0){
+
+                for (int s=i+1; s<end; ++s){
+                    if(cuCreal(matrices(x,s,i)) != 0.0 || cuCimag(matrices(x,s,i)) != 0.0){
+                        cuDoubleComplex temp;
+                        for (int w=i; w<end; ++w){
+                            temp = matrices(x,i,w);
+                            matrices(x,i,w) = matrices(x,s,w);
+                            matrices(x,s,w) = temp;
+                            modifier *= -1;
+                            break;
+                        }
+                    }
+                }
+            }
 
             //Gaussian elimination for the three rows (or fewer) below this one:
             for (int j=i+1; j<end; ++j){
@@ -145,6 +162,9 @@ __global__ void kernel_hepta_determinant_CUDA(int curve_length, int velocities_l
                 }
             }
         }
+
+        // account for determinant changing from row switching
+        matrices(x,0,0) = cuCmul(matrices(x,0,0), make_cuDoubleComplex(modifier, 0.0));
     }
 
 }
