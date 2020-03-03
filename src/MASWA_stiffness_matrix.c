@@ -6,8 +6,9 @@
   matrix of the stratified earth model that is used in the inversion
   analysis and computes its determinant.
 
-  Note alpha, beta, and rho are all length n+1 while h is length n.
-  
+  Note alpha, beta, and rho are all length n+1 while h is length n
+  since we assume infinite half space as bottom layer.  
+
   Inputs:
   c_test the array of test velocities from a curve object
   k the wavelength currently being evaluated by MASW, inverted
@@ -16,6 +17,9 @@
   beta the array of shear wave velocities
   rho the array of layer densities
   n the number of finite thickness layers in the ground model
+
+  Output: 
+  ****JLK to add output determinant****
 
  */
 dfloat MASWA_stiffness_matrix(dfloat c_test, dfloat k, dfloat *h, dfloat *alpha, dfloat *beta, dfloat *rho, int n){
@@ -29,11 +33,11 @@ dfloat MASWA_stiffness_matrix(dfloat c_test, dfloat k, dfloat *h, dfloat *alpha,
     // Then we check that the test velocity is not too close to the model velocities:
     dfloat epsilon = 0.0001;
     while (tooClose(c_test, alpha, beta, n+1, epsilon) == 1){
-        c_test *= 1-epsilon;
+        c_test *= 1-epsilon; // shrink c_test so it's different from model velocity
     }
     
     // Now we add individual Ke layers to the stiffness matrix, going through each finite
-    // thickness layer:
+    // thickness layer (4x4 blocks per layer):
     for (int j=0; j<n; ++j){
 
         compfloat *Ke = MASWA_Ke_layer(h[j], alpha[j], beta[j], rho[j], c_test, k);
@@ -48,7 +52,7 @@ dfloat MASWA_stiffness_matrix(dfloat c_test, dfloat k, dfloat *h, dfloat *alpha,
         free(Ke);
     }
 
-    // Then we add the halfspace representing the last infinite thickness layer:
+    // Then we add the halfspace representing the last infinite thickness layer (2x2 block for halfspace):
     compfloat *Ke_halfspace = MASWA_Ke_halfspace(alpha[n], beta[n], rho[n], c_test, k);
     #define Ke_halfspace(r, c) (Ke_halfspace[(r)*2 + (c)])
     for (int r=0; r<2; ++r){
@@ -61,13 +65,14 @@ dfloat MASWA_stiffness_matrix(dfloat c_test, dfloat k, dfloat *h, dfloat *alpha,
     // Finally compute the real part of the determinant:
     dfloat D = real(hepta_determinant(K, 2*(n+1)));
 
+    // Cleanup of memory
     free(Ke_halfspace);
     for (int i=0; i<2*(n+1); ++i){
         free(K[i]);
     }
     free(K);
 
-    return D;
+    return D; // return the real part of the determinant
 }
 
 /* Helper, used to check if c_test is too close to any entries in alpha or beta
