@@ -78,7 +78,7 @@ Inputs:
 curve the dispersion curve struct
 
 Output:
-1 if all entries are valid, 0 otherwise
+1 if all entries are valid, 0 otherwise.
 */
 int validNumberCheck(curve_t *curve){
     
