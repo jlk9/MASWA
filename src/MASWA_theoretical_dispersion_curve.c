@@ -10,6 +10,10 @@
         variables set except for the theoretically determined dispersion curve velocities
         and wavelengths. The memory for theoretical velocities and wavelengths is assumed to not 
         be allocated yet. These theoretical velocities and wavelengths will be added by this function.
+        
+    Outputs:
+    returns nothing, but allocates the velocities and wavelengths of the theoretical
+        dispersion curve, and fills in their entries using the stiffness matrix method.
 */
 void MASWA_theoretical_dispersion_curve(curve_t *curve){
 
@@ -24,7 +28,7 @@ void MASWA_theoretical_dispersion_curve(curve_t *curve){
     #define D(r, c) (D[(r)*curve->velocities_length + (c)])
 
     // Allocate the theoretically determined velocities and wavelengths:
-    curve->c_t = (dfloat*) calloc(curve->curve_length, sizeof(dfloat));
+    curve->c_t      = (dfloat*) calloc(curve->curve_length, sizeof(dfloat));
     curve->lambda_t = (dfloat*) calloc(curve->curve_length, sizeof(dfloat));
 
     // For each entry in the dispersion curve-
@@ -38,8 +42,8 @@ void MASWA_theoretical_dispersion_curve(curve_t *curve){
                                                curve->n);
             // -stopping when one has a sign change from its predecessor:
             if (m != 0 && D(l,m)*D(l,m-1) < 0.0){ // sign change indicated by (+) * (-) < 0
-                curve->c_t[l] = curve->c_test[m];
-                curve->lambda_t[l] = 2*M_PI / k[l]; // wavelength is 2*pi/wavenumber
+                curve->c_t[l]       = curve->c_test[m];
+                curve->lambda_t[l]  = 2*M_PI / k[l]; // wavelength is 2*pi/wavenumber
                 break;
             }
         }

@@ -6,17 +6,23 @@
     derived velocities. Just assigning all the struct's entries.
     
     Inputs:
-    curve a curve_t object
-    c_test an array of test velocities
-    h thicknesses of the model's layers
-    alpha array of compressional wave velocities
-    beta array of shear wave velocities
-    rho array of layer densities
-    n number of finite thickness layers
-    c_length length of c_test
-    l_length length of lambda_curve0 and c_curve0
-    c_curve0 the experimentally derived velocities of the dispersion curve
-    lambda_curve0 the wavelengths of the dispersion curve
+    curve           a curve_t object
+    c_test          an array of test velocities
+    h               thicknesses of the model's layers
+    alpha           array of compressional wave velocities
+    beta            array of shear wave velocities
+    rho             array of layer densities
+    n               number of finite thickness layers
+    c_length        length of c_test
+    l_length        length of lambda_curve0 and c_curve0
+    c_curve0        the experimentally derived velocities of the dispersion curve
+    lambda_curve0   the wavelengths of the dispersion curve
+    
+    Output:
+    1 if run correctly, 0 if one of the input variables is unrealistic
+    Note: unless one of the inout variables is unrealistic, this function sets all of the
+        curve_t variables except for lambda_t and curve_t (the theoretical wavelengths and
+        velocities of the dispersion curve).
  */
 int MASWA_setVariables(curve_t *curve, dfloat *c_test, dfloat *h, dfloat *alpha, dfloat *beta, dfloat *rho, int n,
                        int c_length, int l_length, dfloat *c_curve0, dfloat *lambda_curve0){
@@ -49,7 +55,7 @@ int MASWA_setVariables(curve_t *curve, dfloat *c_test, dfloat *h, dfloat *alpha,
         
         // This partitions the dispersion curve modularly:
         for (int i=0; i<curve->curve_length; ++i){
-            curve->c_curve0[i] = c_curve0[rank + i*size];
+            curve->c_curve0[i]      = c_curve0[rank + i*size];
             curve->lambda_curve0[i] = lambda_curve0[rank + i*size];
         }
 
@@ -70,6 +76,9 @@ outside these ranges are not useful for MASW.
 
 Inputs:
 curve the dispersion curve struct
+
+Output:
+1 if all entries are valid, 0 otherwise
 */
 int validNumberCheck(curve_t *curve){
     

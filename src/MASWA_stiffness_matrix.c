@@ -10,16 +10,17 @@
   since we assume infinite half space as bottom layer.  
 
   Inputs:
-  c_test the array of test velocities from a curve object
-  k the wavelength currently being evaluated by MASW, inverted
-  h the array of thicknesses of stiffness layers
-  alpha the array of compressional wave velocities
-  beta the array of shear wave velocities
-  rho the array of layer densities
-  n the number of finite thickness layers in the ground model
+  c_test    the array of test velocities from a curve object
+  k         the wavelength currently being evaluated by MASW, inverted
+  h         the array of thicknesses of stiffness layers
+  alpha     the array of compressional wave velocities
+  beta      the array of shear wave velocities
+  rho       the array of layer densities
+  n         the number of finite thickness layers in the ground model   
 
   Output: 
-  ****JLK to add output determinant****
+  D     the real component of the stiffness matrix determinant, used in the algorithm
+            to find the theoretical velocity of MASW
 
  */
 dfloat MASWA_stiffness_matrix(dfloat c_test, dfloat k, dfloat *h, dfloat *alpha, dfloat *beta, dfloat *rho, int n){
@@ -79,12 +80,16 @@ dfloat MASWA_stiffness_matrix(dfloat c_test, dfloat k, dfloat *h, dfloat *alpha,
    and thus requires modification.
    
    Inputs:
-   c_test the test velocity
-   alpha the compressional wave velocities
-   beta the shear wave velocities
-   length the length of alpha and beta
-   epsilon the error tolerance required (if c_test is within epsilon of any model velocity
-    then it is too close)
+   c_test   the test velocity
+   alpha    the compressional wave velocities
+   beta     the shear wave velocities
+   length   the length of alpha and beta
+   epsilon  the error tolerance required (if c_test is within epsilon of any model
+                velocity then it is too close)
+                
+    Output:
+        1 if the test velocity is too close to any of the velocity model parameters, 0 if
+            it is not too close
 */
 int tooClose(dfloat c_test, dfloat *alpha, dfloat *beta, int length, dfloat epsilon){
     for (int i=0; i<length; ++i){
@@ -100,9 +105,12 @@ int tooClose(dfloat c_test, dfloat *alpha, dfloat *beta, int length, dfloat epsi
     which brings it from O(N^3) to O(N).
     
     Inputs:
-    matrix the 2D array storing the entries of a stiffness matrix. Assumed to be stored
-        row-first, and to have a banded heptadiagonal structure
-    size the dimension of the matrix's rows and columns
+    matrix  the 2D array storing the entries of a stiffness matrix. Assumed to be stored
+                row-first, and to have a banded heptadiagonal structure
+    size    the dimension of the matrix's rows and columns
+    
+    Output:
+    determinant     the determinant of this complex, banded, heptadiagonal matrix
  */
 compfloat hepta_determinant(compfloat **matrix, int size){
 
@@ -123,9 +131,9 @@ compfloat hepta_determinant(compfloat **matrix, int size){
             for (int s=i+1; s<end; ++s){
                 if (matrix[s][i] != 0.0){
                     compfloat *temp = matrix[i];
-                    matrix[i] = matrix[s];
-                    matrix[s] = temp;
-                    determinant *= -1.0;
+                    matrix[i]       = matrix[s];
+                    matrix[s]       = temp;
+                    determinant    *= -1.0;
                     break;
                 }
             }

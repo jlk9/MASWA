@@ -6,7 +6,11 @@
    a theoretical dispersion curve.
    
    Inputs:
-   curve a dispersion curve struct (see the header file)
+   curve            a dispersion curve struct (see the header file)
+   
+   Output:
+   curve_misfit     the error computed between the theoretical and experimental
+                        dispersion curves. This is also a field in the curve struct.
    
 */
 dfloat MASWA_misfit(curve_t *curve){
@@ -42,6 +46,10 @@ dfloat MASWA_misfit(curve_t *curve){
     c_t the array of theoretically generated velocities for the dispersion curve, based
         on the model
     c_curve0 the array of experimentally derived velocities for the dispersion curve
+    
+    Output:
+    error       the error computed between curve entries on this process
+    
 */
 dfloat compute_misfit(int curve_length, dfloat *c_t, dfloat *c_curve0){
 

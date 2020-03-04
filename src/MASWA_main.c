@@ -6,6 +6,7 @@
     or one of the test functions available. 
 
     Currently no input arguments are used in this function.
+    It returns 0 if run correctly.
 
 */
 int main(int argc, char**argv){

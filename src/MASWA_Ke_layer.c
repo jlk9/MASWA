@@ -6,12 +6,15 @@
  model that is used in the inversion analysis. The stiffness matrix is a 4x4 stored in a 1D Array.
  
 Inputs:
- r_h is an entry from the h array in a curve struct.
- r_alpha is an entry of the alpha array in a curve struct.
- r_beta is an entry of the beta array in a curve struct.
- r_rho is an entry of the rho array in a curve struct.
- r_c_test is a test velocity from a curve struct.
- r_k is an inverted wavelength from a curve struct.
+ r_h        is an entry from the h array in a curve struct.
+ r_alpha    is an entry of the alpha array in a curve struct.
+ r_beta     is an entry of the beta array in a curve struct.
+ r_rho      is an entry of the rho array in a curve struct.
+ r_c_test   is a test velocity from a curve struct.
+ r_k        is an inverted wavelength from a curve struct.
+ 
+ Outputs:
+ Ke         the 4x4 matrix representing this layer of the proposed ground model
  
  */
 
@@ -20,12 +23,12 @@ compfloat *MASWA_Ke_layer(dfloat r_h, dfloat r_alpha, dfloat r_beta, dfloat r_rh
     /* We need to convert each of the model parameters into complex numbers for the stiffness matrices,
         hence naming them "r_..." in the function call.
     */
-    compfloat h = r_h;
-    compfloat alpha = r_alpha;
-    compfloat beta = r_beta;
-    compfloat rho = r_rho;
-    compfloat c_test = r_c_test;
-    compfloat k = r_k;
+    compfloat h         = r_h;
+    compfloat alpha     = r_alpha;
+    compfloat beta      = r_beta;
+    compfloat rho       = r_rho;
+    compfloat c_test    = r_c_test;
+    compfloat k         = r_k;
 
     compfloat r = (compfloat) sqrt(1.0 - (c_test*c_test)/(alpha*alpha));
     compfloat s = (compfloat) sqrt(1.0 - (c_test*c_test)/(beta*beta));
@@ -50,8 +53,9 @@ compfloat *MASWA_Ke_layer(dfloat r_h, dfloat r_alpha, dfloat r_beta, dfloat r_rh
     compfloat D = 2.0*(1.0-Cr*Cs) + (1.0/(r*s) + r*s)*Sr*Ss;
 
     // Now we allocate the data for the Ke layer:
-    compfloat *Ke = (compfloat*) calloc(16, sizeof(compfloat));
-    compfloat krcd = (k*rho*c_test*c_test)/D;
+    compfloat *Ke   = (compfloat*) calloc(16, sizeof(compfloat));
+    // Used in computing the entries of the stiffness matrices:
+    compfloat krcd  = (k*rho*c_test*c_test)/D;
 
     // Filling out the entries for the layer. Rows have been broken up for ease of reading:
     Ke[0]   =   krcd * (Cr*Ss/s - r*Sr*Cs);

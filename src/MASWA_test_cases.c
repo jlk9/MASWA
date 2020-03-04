@@ -8,15 +8,17 @@ Suite of test cases for various functions in this package.
 
 /* Tests correctness of Ke_layer and Ke_halfspace. Not intended to evaluate
     performance or use with multiple processes.
+    
+    Returns 0 if run correctly. Prints outputs of Kr layer and halfspace.
 */
 int testKeLayer(){
-    const int n = 6;
-    dfloat h[n] = {1.0, 1.0, 2.0, 2.0, 4.0, 5.0};
-    dfloat alpha[n+1] = {1440.0, 1440.0, 1440.0, 1440.0, 1440.0, 1440.0, 1440.0};
-    dfloat beta[n+1] = {75.0, 90.0, 150.0, 180.0, 240.0, 290.0, 290.0};
-    dfloat rho[n+1] = {1850.0, 1850.0, 1850.0, 1850.0, 1850.0, 1850.0, 1850.0};
-    dfloat c_test = 400.0;
-    dfloat k = 0.1778;
+    const int n         = 6;
+    dfloat h[n]         = {1.0, 1.0, 2.0, 2.0, 4.0, 5.0};
+    dfloat alpha[n+1]   = {1440.0, 1440.0, 1440.0, 1440.0, 1440.0, 1440.0, 1440.0};
+    dfloat beta[n+1]    = {75.0, 90.0, 150.0, 180.0, 240.0, 290.0, 290.0};
+    dfloat rho[n+1]     = {1850.0, 1850.0, 1850.0, 1850.0, 1850.0, 1850.0, 1850.0};
+    dfloat c_test       = 400.0;
+    dfloat k            = 0.1778;
 
     // Testing Ke_layer
     int w = 0;
@@ -44,16 +46,18 @@ int testKeLayer(){
 
 /* Tests correctness of the stiffness matrix implementation. Not meant to evaluate
     performance or how function works with multiple processes.
+    
+    Returns 0 if run correctly. Prints out the real component of the determinant.
 */
 int testStiffnessMatrix(){
 
-    const int n = 6;
-    dfloat h[n] = {1.0, 1.0, 2.0, 2.0, 4.0, 5.0};
-    dfloat alpha[n+1] = {1440.0, 1440.0, 1440.0, 1440.0, 1440.0, 1440.0, 1440.0};
-    dfloat beta[n+1] = {75.0, 90.0, 150.0, 180.0, 240.0, 290.0, 290.0};
-    dfloat rho[n+1] = {1850.0, 1850.0, 1850.0, 1850.0, 1850.0, 1850.0, 1850.0};
-    dfloat c_test = 400.0;
-    dfloat k = 0.1778;
+    const int n         = 6;
+    dfloat h[n]         = {1.0, 1.0, 2.0, 2.0, 4.0, 5.0};
+    dfloat alpha[n+1]   = {1440.0, 1440.0, 1440.0, 1440.0, 1440.0, 1440.0, 1440.0};
+    dfloat beta[n+1]    = {75.0, 90.0, 150.0, 180.0, 240.0, 290.0, 290.0};
+    dfloat rho[n+1]     = {1850.0, 1850.0, 1850.0, 1850.0, 1850.0, 1850.0, 1850.0};
+    dfloat c_test       = 400.0;
+    dfloat k            = 0.1778;
 
     dfloat det = MASWA_stiffness_matrix(c_test, k, h, alpha, beta, rho, n);
     
@@ -63,6 +67,8 @@ int testStiffnessMatrix(){
 
 /* Tests correctness of inversion on a realistic dataset with decreasing wavelengths
     and velocities on the dispersion curve.
+    
+    Returns 0 if run correctly. Prints dispersion curves.
 */
 int testProcess(){
 
@@ -70,15 +76,15 @@ int testProcess(){
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
     
-    const int n = 6;
-    dfloat h[n] = {1.0, 1.0, 2.0, 2.0, 4.0, 5.0};
-    dfloat alpha[n+1] = {1440.0, 1440.0, 1440.0, 1440.0, 1440.0, 1440.0, 1440.0};
-    dfloat beta[n+1] = {75.0, 90.0, 150.0, 180.0, 240.0, 290.0, 290.0};
-    dfloat rho[n+1] = {1850.0, 1850.0, 1850.0, 1850.0, 1850.0, 1850.0, 1850.0};
-    dfloat c_test = 400.0;
+    const int n         = 6;
+    dfloat h[n]         = {1.0, 1.0, 2.0, 2.0, 4.0, 5.0};
+    dfloat alpha[n+1]   = {1440.0, 1440.0, 1440.0, 1440.0, 1440.0, 1440.0, 1440.0};
+    dfloat beta[n+1]    = {75.0, 90.0, 150.0, 180.0, 240.0, 290.0, 290.0};
+    dfloat rho[n+1]     = {1850.0, 1850.0, 1850.0, 1850.0, 1850.0, 1850.0, 1850.0};
+    dfloat c_test       = 400.0;
 
-    const int c_length = 1001;
-    const int l_length = 40;
+    const int c_length  = 1001;
+    const int l_length  = 40;
     
     dfloat lambda[l_length] = {28.4400, 25.3091, 22.0000, 18.9231, 17.0571, 14.9600, 13.2000,
                            11.5059, 10.0667, 8.5263, 7.5000, 6.7429, 6.2727, 5.6870, 5.2000, 4.8480, 4.5231,
@@ -93,7 +99,7 @@ int testProcess(){
                                  76.0, 75.0, 74.0, 73.0, 73.0, 73.0};
 
     dfloat *c_array = (dfloat*) calloc(c_length, sizeof(dfloat));
-    dfloat value = 0.5;
+    dfloat value    = 0.5;
     
     for (int i=0; i<c_length; ++i){
         c_array[i] = value;
@@ -133,27 +139,32 @@ int testProcess(){
 
 /* Runs testProcess 11 times (accounting for potential compilation time in first run),
     and gathers the run times to gauge performance.
+    
+    Returns 0 if run correctly. Prints runtime for each run of testProcess.
 */
 int testProcess_full(){
-    int result = 0;
-    int trials = 10;
-    double *time_spent = (double*) calloc(trials+1, sizeof(double));
+    int result          = 0;
+    int trials          = 10;
+    double *time_spent  = (double*) calloc(trials+1, sizeof(double));
     clock_t begin, end;
 
     for (int i=0; i<trials+1; ++i){
-        begin = clock();
-        result = testProcess();
-        end = clock();
-        time_spent[i] = (double)(end - begin) / CLOCKS_PER_SEC;
+        begin           = clock();
+        result          = testProcess();
+        end             = clock();
+        time_spent[i]   = (double)(end - begin) / CLOCKS_PER_SEC;
     }
     for(int i=0; i<trials+1; ++i){
         printf("%f,", time_spent[i]);
     }
     printf("\n\n");
+    return 0;
 }
 
 /* Tests correctness of inversion on a uniform dataset, to gauge strong and weak scaling
     capabilities of the algorithm with the load imbalancing of variable data.
+    
+    Returns 0 if run correctly.
 */
 int testScaling(int curve_size, dfloat wavelength){
 
@@ -161,29 +172,30 @@ int testScaling(int curve_size, dfloat wavelength){
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
     
-    const int n = 6;
-    dfloat h[n] = {1.0, 1.0, 2.0, 2.0, 4.0, 5.0};
-    dfloat alpha[n+1] = {1440.0, 1440.0, 1440.0, 1440.0, 1440.0, 1440.0, 1440.0};
-    dfloat beta[n+1] = {75.0, 90.0, 150.0, 180.0, 240.0, 290.0, 290.0};
-    dfloat rho[n+1] = {1850.0, 1850.0, 1850.0, 1850.0, 1850.0, 1850.0, 1850.0};
-    dfloat c_test = 400.0;
-    dfloat k = 0.1778;
+    const int n         = 6;
+    dfloat h[n]         = {1.0, 1.0, 2.0, 2.0, 4.0, 5.0};
+    dfloat alpha[n+1]   = {1440.0, 1440.0, 1440.0, 1440.0, 1440.0, 1440.0, 1440.0};
+    dfloat beta[n+1]    = {75.0, 90.0, 150.0, 180.0, 240.0, 290.0, 290.0};
+    dfloat rho[n+1]     = {1850.0, 1850.0, 1850.0, 1850.0, 1850.0, 1850.0, 1850.0};
+    dfloat c_test       = 400.0;
+    dfloat k            = 0.1778;
 
-    const int c_length = 1001;
-    const int l_length = curve_size; //can be 42 for first 2 entries
+    const int c_length  = 1001;
+    const int l_length  = curve_size; //can be 42 for first 2 entries
     
-    dfloat *lambda = (dfloat*) calloc(l_length, sizeof(dfloat));
-    dfloat *c_curve = (dfloat*) calloc(l_length, sizeof(dfloat));
+    dfloat *lambda      = (dfloat*) calloc(l_length, sizeof(dfloat));
+    dfloat *c_curve     = (dfloat*) calloc(l_length, sizeof(dfloat));
+
     for (int i=0; i<l_length; ++i){
         lambda[i]   = wavelength;
         c_curve[i]  = 0.1;
     }
 
     dfloat *c_array = (dfloat*) calloc(c_length, sizeof(dfloat));
-    dfloat value = 0.0;
+    dfloat value    = 0.0;
     
     for (int i=0; i<c_length; ++i){
-        c_array[i] = value;
+        c_array[i]  = value;
         value += 0.5;
     }
     
@@ -203,27 +215,29 @@ int testScaling(int curve_size, dfloat wavelength){
 
 /*Runs test_scaling multiple times over increasing dispersion curves, used to assess weak scaling.
     Collects and prints runtimes to gauge performance.
+    
+    Returns 0 if run correctly. Prints the runtimes.
 */
 int testScaling_full(){
-    int result = 0;
-    int trials = 10;
-    double *time_spent = (double*) calloc(3*(trials+1), sizeof(double));
+    int result          = 0;
+    int trials          = 10;
+    double *time_spent  = (double*) calloc(3*(trials+1), sizeof(double));
     clock_t begin, end;
 
     dfloat wavelengths[3] = {0.1, 28.440, 50.0};
 
     for (int j=0; j<3; ++j){
-        begin = clock();
-        result = testScaling(50, wavelengths[j]);
-        end = clock();
+        begin   = clock();
+        result  = testScaling(50, wavelengths[j]);
+        end     = clock();
         time_spent[j*(trials+1)] = (double)(end - begin) / CLOCKS_PER_SEC;
     }
 
     for (int i=1; i<trials+1; ++i){
         for (int j=0; j<3; ++j){
-            begin = clock();
-            result = testScaling((i)*50, wavelengths[j]);
-            end = clock();
+            begin   = clock();
+            result  = testScaling((i)*50, wavelengths[j]);
+            end     = clock();
             time_spent[j*(trials+1) + i] = (double)(end - begin) / CLOCKS_PER_SEC;
         }
     }

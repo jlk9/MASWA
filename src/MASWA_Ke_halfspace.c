@@ -6,20 +6,24 @@
  used in the inversion analysis. This halfspace is a 2x2 matrix stored as a 1D array by rows.
  
  Inputs:
- r_alpha is an entry of the alpha array in a curve struct.
- r_beta is an entry of the beta array in a curve struct.
- r_rho is an entry of the rho array in a curve struct.
- r_c_test is a test velocity from a curve struct.
- r_k is an inverted wavelength from a curve struct.
+ r_alpha    is an entry of the alpha array in a curve struct.
+ r_beta     is an entry of the beta array in a curve struct.
+ r_rho      is an entry of the rho array in a curve struct.
+ r_c_test   is a test velocity from a curve struct.
+ r_k        is an inverted wavelength from a curve struct.
+ 
+ Output:
+ Ke         the 2x2 matrix representing the infinite-thickness layer at the bottom of the
+                proposed ground model, which increments the stiffness matrix
  
 */
 compfloat *MASWA_Ke_halfspace(dfloat r_alpha, dfloat r_beta, dfloat r_rho, dfloat r_c_test, dfloat r_k){
 
-    compfloat alpha = r_alpha;
-    compfloat beta = r_beta;
-    compfloat rho = r_rho;
-    compfloat c_test = r_c_test;
-    compfloat k = r_k;
+    compfloat alpha     = r_alpha;
+    compfloat beta      = r_beta;
+    compfloat rho       = r_rho;
+    compfloat c_test    = r_c_test;
+    compfloat k         = r_k;
     
     compfloat r    = sqrt(1.0 - (c_test*c_test)/(alpha*alpha));
     compfloat s    = sqrt(1.0 - (c_test*c_test)/(beta*beta));
