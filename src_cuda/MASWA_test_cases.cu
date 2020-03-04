@@ -6,7 +6,10 @@
 Suite of test cases for various CUDA functions.
 */
 
-/* End-to-end test for the CUDA implementation of MASW. */
+/* End-to-end test for the CUDA implementation of MASW.
+
+    Returns 0 if run correctly, but also prints theoretical velocity values.
+*/
 int testProcess(){
 
     const int n = 6;
@@ -55,6 +58,8 @@ int testProcess(){
 }
 
 /* Runs testProcess 11 times (accounting for potential compilation time in first run).
+
+    Returns 0 if run correctly, prints runtimes of each run of algorithm.
 */
 int testProcess_full(){
     int result = 0;
@@ -77,6 +82,8 @@ int testProcess_full(){
 }
 
 /* Tests the sign change across multiple blocks works properly. The vector c_t should return [0, 2, 3, 4, 5]
+
+    Returns 0 if run correctly, prints results of sign evaluation.
 */
 int testSignChange(){
     int blocksPerWavelength = 3;
@@ -133,6 +140,8 @@ int testSignChange(){
 
 /* Tests that the determinant matrix is set up properly, and the correct sign changes are found.
     TODO: redo this for new determinant functions
+    
+    Returns 0 if run correctly.
 */
 int testFullSignChange(){
 
@@ -187,6 +196,8 @@ int testFullSignChange(){
 }
 
 /* Tests the stiffness matrices are set up properly.
+
+    Returns 0 if run correctly.
 */
 int testDeterminantMatrixSetup(){
 
@@ -243,6 +254,9 @@ int testDeterminantMatrixSetup(){
 }
 
 /* Tests how the total end to end process performs with a long dispersion curve.
+
+    Returns 0 if run correctly,prints out one theoretical velocity of uniform dispersion
+        curve
 */
 int testScaling(int curve_size, dfloat wavelength){
 
@@ -286,7 +300,9 @@ int testScaling(int curve_size, dfloat wavelength){
     return 0;
 }
 
-/*Runs test_scaling multiple times over increasing dispersion curves:
+/*Runs test_scaling multiple times over increasing dispersion curves.
+
+    Returns 0 if run correctly, prints runtimes.
 */
 int testScaling_full(){
     int result = 0;
@@ -325,6 +341,8 @@ int testScaling_full(){
 }
 
 /* Tests the misfit functions implemented in CUDA, both single block and multi block, for accuracy and performance.
+
+    Returns 0 if run correctly.
 */
 int testMisfitCuda(){
 

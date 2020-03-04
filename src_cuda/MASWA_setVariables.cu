@@ -19,6 +19,12 @@
     l_length        length of lambda_curve0 and c_curve0
     c_curve0        the experimentally derived velocities of the dispersion curve
     lambda_curve0   the wavelengths of the dispersion curve
+    
+    Output:
+    1 if run correctly, 0 if one of the input variables is unrealistic
+    Note: unless one of the inout variables is unrealistic, this function sets all of the
+        curve_t variables except for lambda_t and curve_t (the theoretical wavelengths and
+        velocities of the dispersion curve).
 */
 int MASWA_setVariables(curve_t *curve, dfloat *c_test, dfloat *h, dfloat *alpha, dfloat *beta, dfloat *rho, int n,
                        int c_length, int l_length, dfloat *c_curve0, dfloat *lambda_curve0){
@@ -79,6 +85,9 @@ and layer thicknesses, densities, and wavelengths should not be negative.
 
     Inputs:
     curve       the dispersion curve struct
+    
+    Output:
+    1 if all entries are valid, 0 otherwise.
 */
 int validNumberCheck(curve_t *curve){
     

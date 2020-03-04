@@ -12,6 +12,10 @@
     curve       the dispersion curve struct
     d_matrices  the stiffness matrices allocated on the GPU as a 2D array (each sub-array
                     corresponding to a matrix). These were already allocated.
+                    
+    Output:
+    void, but fills the stiffness matrices with Gaussian elimination in the d_matrices
+        parameter
 */
 void MASWA_stiffness_matrix_CUDA(curve_t *curve, cuDoubleComplex **d_matrices){
 
@@ -66,6 +70,9 @@ void MASWA_stiffness_matrix_CUDA(curve_t *curve, cuDoubleComplex **d_matrices){
     curve_length            also determines the number of matrices
     n                       determines the size of the matrices
     matrices                the array storing the matrix entries
+    
+    Outputs:
+        void, but makes every matrix in matrices an identity matrix
 */
 __global__ void kernel_matrix_fill_in_serial(int velocities_length, int curve_length, int n, cuDoubleComplex **matrices){
 
@@ -83,6 +90,19 @@ __global__ void kernel_matrix_fill_in_serial(int velocities_length, int curve_le
     utilizing cuBLAS (there may be a method that does not require a kernel, but other things I tried generated a seg fault).
     Since cuBLAS is no longer used, the code may be rewritten to omit this. (Matrices can just be stored as a 1D array without
     pointers, as opposed to a 2D array).
+    
+    Inputs:
+    matrices            the pointers to every matrix in the gpu data
+    data                the 1D array containing all of the matrix entries
+    curve_length        the length of the dispersion curve
+    velocities_length   the number of test velocities. It and curve_length determine the
+                            number of stiffness matrices
+    n                   the number of finite thickness layers, determines the size of
+                            each stiffness matrix
+                            
+    Output:
+        assignes each stiffness matrix as a pointer in matrices
+    
 */
 __global__ void kernel_assign_matrices_to_data(cuDoubleComplex **matrices, cuDoubleComplex *data, int curve_length, int velocities_length, int n){
 
@@ -100,10 +120,14 @@ __global__ void kernel_assign_matrices_to_data(cuDoubleComplex **matrices, cuDou
     used for elimination into shared memory, improving the speed of accessing it.
     
     Inputs:
-        curve_length            the length of the dispersion curve
-        velocities_length       the number of test velocities
-        size                    the length of the axis for each stiffness matrix
-        matrices                the 2D array holding the matrices' entries
+    curve_length            the length of the dispersion curve
+    velocities_length       the number of test velocities
+    size                    the length of the axis for each stiffness matrix
+    matrices                the 2D array holding the matrices' entries
+        
+    Outputs:
+    void, but performs gaussian elimination on each stiffness matrix so their determines
+        can easily be computed
 */
 __global__ void kernel_hepta_determinant_CUDA(int curve_length, int velocities_length, int size, cuDoubleComplex **matrices){
 

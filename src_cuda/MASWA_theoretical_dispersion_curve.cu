@@ -9,6 +9,11 @@
  
     Inputs:
     curve       the dispersion curve struct
+    
+    Outputs:
+        void, but sets the theoretical dispersion curve values in the curve_t object (c_t
+            and lambda_t), and prints the misfit between the theoretical and experimental
+            velocities.
  */
 void MASWA_theoretical_dispersion_curve_CUDA(curve_t *curve){
     
@@ -30,7 +35,7 @@ void MASWA_theoretical_dispersion_curve_CUDA(curve_t *curve){
     // The determinants for each wavelength are stored in the same block. Since the number
     // of test velocities is usually greater than the block size, multiple blocks will
     // usually be assigned to each wavelength.
-    const int blockSize = 256;
+    const int blockSize     = 256;
     int blocksPerWavelength = (curve->velocities_length / blockSize)+1;
 
     // Neighbors holds the determinant of the "next block" for the wavelength, to make
@@ -95,6 +100,10 @@ void MASWA_theoretical_dispersion_curve_CUDA(curve_t *curve){
     velocities_length   the length of the test velocities array
     size                the axis size of the stiffness matrices (2*(n+1))
     matrices            the 2D array that holds the stiffness matrix entries
+    
+    Output:
+    void, stores the index of the first determinant sign change for each block of each
+        wavelength in signChange
 */
 __global__ void kernel_block_sign_change(int *neighbors, int *signChange, int velocities_length, int size, cuDoubleComplex **matrices){
     /*
@@ -105,14 +114,14 @@ __global__ void kernel_block_sign_change(int *neighbors, int *signChange, int ve
 
     // Both signChange and neighbors are size curve_length * blocksPerWavelength
 
-    static const int blockSize = 256;
-    int threadIndex = threadIdx.x;
+    static const int blockSize  = 256;
+    int threadIndex             = threadIdx.x;
     // We get the thread's matching wavelength value, which is its block id in the x axis:
-    int wavelengthIndex = blockIdx.x;
+    int wavelengthIndex         = blockIdx.x;
     // Then we get its velocity value, which is determined by its thread id and block id in the y axis:
-    int blockIndexY = blockIdx.y;
-    int velocityIndex = blockIndexY * blockSize + threadIndex;
-    int blocksPerWavelength = gridDim.y;
+    int blockIndexY             = blockIdx.y;
+    int velocityIndex           = blockIndexY * blockSize + threadIndex;
+    int blocksPerWavelength     = gridDim.y;
 
     // The portion of determinants stored in this block.
     __shared__ dfloat e[blockSize];
@@ -171,6 +180,10 @@ __global__ void kernel_block_sign_change(int *neighbors, int *signChange, int ve
                                 wavelength
     blocksPerWavelength     the number of blocks assigned to each wavelength
     curve_length            the length of the dispersion curve
+    
+    Output:
+    void, but assigns the right theoretical velocity to each wavelength based on the
+        first overall sign change
 */
 __global__ void kernel_first_sign_change(dfloat *c_t, dfloat* c_test, int *signChange, int blocksPerWavelength, int curve_length){
 

@@ -19,6 +19,9 @@
     curve_length        the length of lambda (and the dispersion curve)
     matrices            the 2D array that stores the entries of all the stiffness matrices,
                         size 2(n+1) x 2(n+1)
+                        
+    Output:
+        void, but fills in the entries of all of the stiffness matrices
 */
 __global__ void kernel_generate_stiffness_matrices(dfloat *c_test, dfloat *lambda, dfloat *h, dfloat *alpha, dfloat *beta, dfloat *rho, int n, int velocities_length, int curve_length, cuDoubleComplex **matrices){
 
@@ -94,6 +97,10 @@ __global__ void kernel_generate_stiffness_matrices(dfloat *c_test, dfloat *lambd
     alpha               the array of compressional wave velocities in the model
     beta                the array of shear wave velocities in the model
     epsilon             the tolerance for how close any velocity in c_test can be to alpha or beta
+    
+    Output:
+    void, but modifies all test velocities that are too close to velocities in the model
+        parameters
 */
 __global__ void kernel_too_close(int velocities_length, int nPlus, dfloat *c_test, dfloat *alpha, dfloat *beta, dfloat epsilon){
 
@@ -125,6 +132,9 @@ __global__ void kernel_too_close(int velocities_length, int nPlus, dfloat *c_tes
     r_c_test    the test velocity of the stiffness matrix for this Ke layer
     r_k         the inverted wavelength of the stiffness matrix for this Ke layer
     Ke          the array where this layer is stored
+    
+    Output:
+    void, but fills in the entries for the relevant Ke layer
 */
 __device__ void kernel_Ke_layer_symm(dfloat r_h, dfloat r_alpha, dfloat r_beta, dfloat r_rho, dfloat r_c_test, dfloat r_k, cuDoubleComplex *Ke){
 
@@ -199,6 +209,9 @@ __device__ void kernel_Ke_layer_symm(dfloat r_h, dfloat r_alpha, dfloat r_beta, 
     r_c_test    the test velocity of the stiffness matrix for this halfspace
     r_k         the inverted wavelength of the stiffness matrix for this halfspace
     Ke          the array where this halfspace is stored
+    
+    Output:
+    void, but fills in the entries for the relevant Ke halfspace
     
 */
 __device__ void kernel_Ke_halfspace_symm(dfloat r_alpha, dfloat r_beta, dfloat r_rho, dfloat r_c_test, dfloat r_k, cuDoubleComplex *Ke){

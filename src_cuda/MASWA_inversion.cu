@@ -6,11 +6,14 @@
    find the first sign change, and calculate the misfit between the theoretical and experimentally
    derived curves.
    
+   We assume the model parameters have already been set in MASWA_setVariables.
+   
     Inputs:
     curve the dispersion curve struct, described in MASW.h
-*/
-
-/* We assume the curve's variables have already been set using set_variables.
+    
+    Outputs:
+    0 if run correctly, but the theoretical wavelengths, velocities, and misfit are all
+        set in the curve_t parameters
 */
 dfloat MASWA_inversion_CUDA(curve_t *curve){
 
